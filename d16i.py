@@ -41,6 +41,8 @@ register_instruction(0x1D, "LDCP")
 register_instruction(0x1E, "STCP")
 register_instruction(0x1F, "ADC")
 register_instruction(0x20, "SBB")
+
+
 register_instruction(0x81, "ADDI", regsel_imm=lambda imm, d: (d + imm))
 register_instruction(0x82, "SUBI", regsel_imm=lambda imm, d: (d - imm))
 register_instruction(0x83, "PUSHI")
@@ -144,7 +146,7 @@ def main(code):
     regs = [0] * 8
     flags = {"negative": 0, "zero": 0, "carry": 0, "overflow": 0}
     mem = code + (0xFFFF - len(code)) * [0]
-    print("addr instr  :  NZCV registers")
+    print("addr instr  : NZCV r0 r1 r2 r3 r4 r5 r6 r7")
     while i < len(code):
         instruction_type = instructions[mem[i]]
         print("{:04} {:7}: {}  {}".format(i, instruction_type["name"],
@@ -216,10 +218,13 @@ def little_to_big_endian_16(data):
     assert len(data) % 2 == 0
     result = len(data) * [0]
     for i in range(0, int(len(data) / 2)):
-        result[i] = data[i+1]
-        result[i+1] = data[i]
+        result[2*i] = data[2*i+1]
+        result[2*i+1] = data[2*i]
     return result
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print "Usage: d16i [binary]"
+        sys.exit(1)
     with open(sys.argv[1], "rb") as code:
         main(little_to_big_endian_16(bytearray(code.read())))
