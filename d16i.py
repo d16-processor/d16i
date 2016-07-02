@@ -124,15 +124,15 @@ def test_cc(flags, cc):
 
 
 def update_flags(flags, value):
-    flags["overflow"] = value > 0xFFFF
-    flags["negative"] = (value & 0xFFFF) >> 7 == 1
+    flags["overflow"] = value > 0xFFFF #overflow is when the sign bit changes. Not sure how to fix without major refactor
+    flags["negative"] = (value & 0xFFFF) >> 15 == 1
     flags["zero"] = (value & 0xFFFF) == 0
-    flags["carry"] = (value >> 8) & 0x1 == 1
+    flags["carry"] = (value >> 16) & 0x1 == 1
 
 def regs_to_str(regs):
     result = ""
     for v in regs:
-        result += "{:02x} ".format(v)
+        result += "{:04x} ".format(v)
     return result
 
 def flags_to_str(flags):
@@ -144,11 +144,9 @@ def main(code):
     regs = [0] * 8
     flags = {"negative": 0, "zero": 0, "carry": 0, "overflow": 0}
     mem = code + (0xFFFF - len(code)) * [0]
-    print("addr instr  : NZCV r0 r1 r2 r3 r4 r5 r6 r7")
+    print("addr instr  : NZCV  r0   r1   r2   r3   r4   r5   r6   r7")
     while i < len(code):
         instruction_type = instructions[mem[i]]
-        print("{:04} {:7}: {}  {}".format(i, instruction_type["name"],
-            flags_to_str(flags), regs_to_str(regs)))
         if "regsel" in instruction_type:
             rS, rD = decode_reg_sel(mem, i)
             regs[rD] = instruction_type["regsel"](regs[rS], regs[rD])
@@ -239,6 +237,8 @@ def main(code):
                 assert False
         else:
             assert False, "Unknown operation 0x{:x} at {}".format(mem[i], i)
+        print("{:04} {:7}: {}  {}".format(i, instruction_type["name"],
+                                      flags_to_str(flags), regs_to_str(regs)))
 
 
 
