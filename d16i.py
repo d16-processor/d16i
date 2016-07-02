@@ -75,13 +75,11 @@ def decode_imm(code, i):
     return rS, rD, imm
 
 def decode_reg_sel_disp(code, i):
-    isDisp = code[i + 1] >> 7 & 0x1
-    if isDisp:
-        return decode_imm(code, i)
-    else:
-        rS, rD = decode_reg_sel(code, i)
-        return rS, rD, None
-
+    isDisp = code[i + 1] >> 6 & 0x1
+    return isDisp
+def decode_byte_sel(code,i):
+    isByte = code[i+1]>>7& 0x1
+    return isByte
 def decode_reg_store(code, i):
     return code[i+1]
 
@@ -152,13 +150,13 @@ def main(code):
         print("{:04} {:7}: {}  {}".format(i, instruction_type["name"],
             flags_to_str(flags), regs_to_str(regs)))
         if "regsel" in instruction_type:
-            rS, rD = decode_regsel(mem, i)
+            rS, rD = decode_reg_sel(mem, i)
             regs[rD] = instruction_type["regsel"](regs[rS], regs[rD])
             update_flags(flags, regs[rD])
             regs[rD] &= 0xFFFF
             i += 2
         elif "regsel_manual" in instruction_type:
-            rS, rD = decode_regsel(mem, i)
+            rS, rD = decode_reg_sel(mem, i)
             instruction_type["regsel_manual"](rS, rD, regs, mem, flags)
             i += 2
         elif "regsel_imm" in instruction_type:
@@ -182,22 +180,48 @@ def main(code):
             custom = instruction_type["custom"]
             if custom == "noop":
                 i += 2
-            elif custom == "ldi" or custom == "ld":
-                rS, rD, disp = decode_reg_sel_disp(mem, i)
+            elif custom == "ldi":
+                disp = decode_reg_sel_disp(mem, i)
+                byte = decode_byte_sel(mem,i)
+                rS, rD, imm = decode_imm(mem, i)
                 if disp:
-                    regs[rD] = mem[regs[rS] + disp]
-                    i += 4
+                    if byte:
+                        regs[rD] = mem[imm+regs[rS]]
+                    else:
+                        regs[rD] = (mem[imm+regs[rS]+1]<<8) | mem[imm+regs[rS]]
                 else:
+                    if byte:
+                       regs[rD] = mem[imm]
+                    else:
+                        regs[rD] = (mem[imm+1]<<8) | mem[imm]
+                i += 4
+            elif custom == "ld":
+                byte = decode_byte_sel(mem, i)
+                if byte:
                     regs[rD] = mem[regs[rS]]
-                    i += 2
-            elif custom == "sti" or custom == "st":
-                rS, rD, disp = decode_reg_sel_disp(mem, i)
-                if disp:
-                    mem[regs[rD] + disp] = regs[rS]
-                    i += 4
                 else:
-                    mem[regs[rD]] = regs[rS]
-                    i += 2
+                    regs[rD] = (mem[regs[rS]+1]<<8) | mem[regs[rS]]
+                i += 2
+            elif custom == "sti":
+                disp = decode_reg_sel_disp(mem, i)
+                byte = decode_byte_sel(mem,i)
+                rS,rD,imm = decode_imm(mem,i)
+                if disp:
+                    mem[regs[rD] + imm] = regs[rS]&0xff
+                    if not byte:
+                        mem[regs[rD] + imm + 1] = (regs[rS]>>8) & 0xff
+                else:
+                    mem[imm] = regs[rS]&0xff
+                    if not byte:
+                        mem[imm+1] = (regs[rS]>>8) & 0xff
+                i += 4
+            elif custom == "st":
+                rS, rD = decode_reg_sel(mem,i)
+                byte = decode_byte_sel(mem,i)
+                mem[regs[rD]] = regs[rS]&0xff
+                if not byte:
+                    mem[regs[rD]+1] = (regs[rS]>>8)&0xff
+                i += 2
             elif custom == "jmp":
                 rD, cc = decode_jmpsel(mem, i)
                 if test_cc(flags,cc):
