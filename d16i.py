@@ -174,6 +174,10 @@ def main(code):
             update_flags(flags, regs[rD])
             regs[rD] &= 0xFFFF
             i += 2
+        elif "regsel_manual_imm" in instruction_type:
+            rS, rD, imm = decode_imm(mem, i)
+            instruction_type["regsel_manual_imm"](imm,regs[rD],regs,mem,flags)
+            i += 4
         elif "custom" in instruction_type:
             custom = instruction_type["custom"]
             if custom == "noop":
@@ -196,14 +200,14 @@ def main(code):
                     i += 2
             elif custom == "jmp":
                 rD, cc = decode_jmpsel(mem, i)
-                if test_cc(cc):
+                if test_cc(flags,cc):
                     i = regs[rD]
                 else:
                     i += 2
             elif custom == "jmpi":
                 _, cc = decode_jmpsel(mem, i)
                 _, _, imm = decode_imm(mem, i)
-                if test_cc(cc):
+                if test_cc(flags,cc):
                     i = imm
                 else:
                     i += 4
