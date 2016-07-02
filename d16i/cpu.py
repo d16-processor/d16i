@@ -4,13 +4,15 @@ import sys
 instructions = 255 * [None]
 
 def register_instruction(value, name, **kwargs):
+    assert instructions[value] is None, "attempted to insert duplicate instruction"
     kwargs.update({"name": name})
     instructions[value] = kwargs
 
-
 register_instruction(0x00, "NOP", custom="noop")
-register_instruction(0x01, "ADD", regsel=lambda s, d: (s + d))
-register_instruction(0x02, "SUB",  regsel=lambda s, d: (d - s))
+register_instruction(0x01, "ADD", signed_flags=lambda s, d: (s, d),
+                                  regsel=lambda s, d: (s + d))
+register_instruction(0x02, "SUB", signed_flags=lambda s, d: (-s, d),
+                                  regsel=lambda s, d: (d - s))
 register_instruction(0x03, "PUSH")
 register_instruction(0x04, "POP")
 register_instruction(0x05, "MOVB_R0", reg_store=0)
@@ -29,7 +31,7 @@ register_instruction(0x11, "NOT", regsel=lambda s, d: (~d))
 register_instruction(0x12, "NEG", regsel=lambda s, d: (-s) & 0xFFFF)
 register_instruction(0x13, "LD", custom="ld")
 register_instruction(0x14, "ST", custom="st")
-register_instruction(0x15, "CMP", regsel_manual=lambda s, d, regs, mem, flags: update_flags(flags, regs[d] - regs[s]))
+register_instruction(0x15, "CMP", signed_flags=lambda s, d: (-s, d))
 register_instruction(0x16, "JMP", custom="jmp")
 register_instruction(0x17, "CALL")
 register_instruction(0x18, "SPEC")
@@ -43,50 +45,41 @@ register_instruction(0x1F, "ADC")
 register_instruction(0x20, "SBB")
 
 
-register_instruction(0x81, "ADDI", regsel_imm=lambda imm, d: (d + imm))
-register_instruction(0x82, "SUBI", regsel_imm=lambda imm, d: (d - imm))
-register_instruction(0x83, "PUSHI")
-register_instruction(0x8D, "MOVI", regsel_imm=lambda imm, d: imm)
-register_instruction(0x8E, "ANDI", regsel_imm=lambda imm, d: (imm & d))
-register_instruction(0x8F, "ORI",  regsel_imm=lambda imm, d: (imm | d))
-register_instruction(0x90, "XORI", regsel_imm=lambda imm, d: (imm ^ d))
-register_instruction(0x93, "LDI", custom="ldi")
-register_instruction(0x94, "STI", custom="sti")
-register_instruction(0x95, "CMPI", regsel_manual_imm=lambda imm, d, regs, mem, flags: update_flags(flags, d - imm))
-register_instruction(0x96, "JMPI", custom="jmpi")
-register_instruction(0x97, "CALLI")
-register_instruction(0x99, "SHLI", regsel_imm=lambda imm, d: (d << s))
-register_instruction(0x9A, "SHRI", regsel_imm=lambda imm, d: (d >> s))
-register_instruction(0x9B, "ROLI", regsel_imm=lambda imm, d: (d >> s & 0xFFFF) | (d << (16 - s) & 0xFFFF))
-register_instruction(0x9C, "RCLI")
-register_instruction(0x9F, "ADC")
-register_instruction(0xA0, "SBB")
+register_instruction(0x81, "ADDI",  immediate=True,
+                                    signed_flags_imm=lambda imm, s: (imm, s),
+                                    regsel_imm=lambda imm, s: (s + imm))
+register_instruction(0x82, "SUBI",  immediate=True,
+                                    signed_flags_imm=lambda imm, s: (-imm, s),
+                                    regsel_imm=lambda imm, s: (s - imm))
+register_instruction(0x83, "PUSHI", immediate=True)
+register_instruction(0x8D, "MOVI",  immediate=True,
+                                    regsel_imm=lambda imm, s: imm)
+register_instruction(0x8E, "ANDI",  immediate=True,
+                                    regsel_imm=lambda imm, s: (imm & s))
+register_instruction(0x8F, "ORI",   immediate=True,
+                                    regsel_imm=lambda imm, s: (imm | s))
+register_instruction(0x90, "XORI",  immediate=True,
+                                    regsel_imm=lambda imm, s: (imm ^ s))
+register_instruction(0x93, "LDI",   immediate=True,
+                                    custom="ldi")
+register_instruction(0x94, "STI",   immediate=True,
+                                    custom="sti")
+register_instruction(0x95, "CMPI",  immediate=True,
+                                    signed_flags_imm=lambda imm, s: (-imm, s))
+register_instruction(0x96, "JMPI",  immediate=True,
+                                    custom="jmpi")
+register_instruction(0x97, "CALLI", immediate=True)
+register_instruction(0x99, "SHLI",  immediate=True,
+                                    regsel_imm=lambda imm, s: (s << s))
+register_instruction(0x9A, "SHRI",  immediate=True,
+                                    regsel_imm=lambda imm, s: (s >> s))
+register_instruction(0x9B, "ROLI",  immediate=True,
+                                    regsel_imm=lambda imm, s: (s >> s & 0xFFFF) | (s << (16 - s) & 0xFFFF))
+register_instruction(0x9C, "RCLI",  immediate=True)
+register_instruction(0x9F, "ADC",   immediate=True)
+register_instruction(0xA0, "SBB",   immediate=True)
 
 
-def decode_reg_sel(code, i):
-    byte = code[i + 1]
-    rD = byte & 0b111
-    rS = (byte >> 3) & 0b111
-    return rS, rD
-
-def decode_imm(code, i):
-    rS, rD = decode_reg_sel(code, i)
-    imm = code[i + 2] << 8 | code[i + 3]
-    return rS, rD, imm
-
-def decode_reg_sel_disp(code, i):
-    isDisp = code[i + 1] >> 6 & 0x1
-    return isDisp
-def decode_byte_sel(code,i):
-    isByte = code[i+1]>>7& 0x1
-    return isByte
-def decode_reg_store(code, i):
-    return code[i+1]
-
-def decode_jmpsel(code, i):
-    cc = (code[i + 1] >> 3) & 0xf
-    rD = code[i + 1] & 0x7
-    return rD, cc
 
 def test_cc(flags, cc):
     if cc == 0x0:
@@ -123,61 +116,124 @@ def test_cc(flags, cc):
         return True
 
 
-def update_flags(flags, value):
-    flags["overflow"] = value > 0xFFFF #overflow is when the sign bit changes. Not sure how to fix without major refactor
-    flags["negative"] = (value & 0xFFFF) >> 15 == 1
-    flags["zero"] = (value & 0xFFFF) == 0
-    flags["carry"] = (value >> 16) & 0x1 == 1
 
-def regs_to_str(regs):
-    result = ""
-    for v in regs:
-        result += "{:04x} ".format(v)
-    return result
 
-def flags_to_str(flags):
-    return "{:b}{:b}{:b}{:b}".format(flags["negative"], flags["zero"],
-            flags["carry"], flags["overflow"])
+class D16Cpu():
+    def __init__(self, code):
+        self.ip = {"has_branched": False,
+                   "i": 0}
+        self.regs = [0] * 8
+        self.flags = {}
+        self._reset_flags()
+        self.mem = code + (0xFFFF - len(code)) * [0]
+
+    def _reset_flags(self):
+        self.flags.update({
+            "negative": False,
+            "zero": False,
+            "carry": False,
+            "overflow": False
+        })
+
+    def _current_instruction(self):
+        return instructions[mem[i]]
+
+
+    def _update_flags(self, value):
+        self.flags["overflow"] = False
+        self.flags["negative"] = (value & 0xFFFF) >> 15 == 1
+        self.flags["zero"] = (value & 0xFFFF) == 0
+        self.flags["carry"] = (value >> 16) & 0x1 == 1
+
+    def _update_signed_flags(flags, s, d):
+        s_sign = s >> 15
+        d_sign = d >> 15
+        result = (s + d) & 0xFFFF
+        result_sign = result >> 15
+
+        self._update_flags(result)
+        self.flags["overflow"] = (s_sign == d_sign) and result_sign != s_sign
+
+
+    def _current_word(self):
+        return self.mem[i + 0] << 8 | self.mem[i + 1]
+    def _next_word(self):
+        return self.mem[i + 2] << 8 | self.mem[i + 3]
+    def _current_half(self):
+        return self.mem[i + 0]
+    def _next_half(self):
+        return self.mem[i + 1]
+
+
+    # Instruction decoding helpers {{{
+    def decode_reg_sel(self):
+        rD = (self._next_half() & 0b00000111)
+        rS = (self._next_half() & 0b00111000) >> 3
+        return rS, rD
+
+    def decode_imm(self):
+        rS, rD = decode_reg_sel(self.mem, i)
+        return rS, rD, self._next_word()
+
+    def decode_reg_sel_disp(self):
+        return self._next_half() & 0b01000000 > 0
+    def decode_byte_sel(self):
+        return self._next_half() & 0b10000000 > 0
+    def decode_reg_store(self):
+        return self._next_half()
+
+    def decode_jmpsel(self):
+        rD = (self._next_half() & 0b00000111)
+        cc = (self._next_half() & 0b01111000) >> 3
+        return rD, cc
+    # }}}
+
+
+    # Debug printing {{{
+    def regs_to_str(self):
+        return " ".join(["{:04x}".format(v) for v in self.regs])
+
+    def flags_to_str(self):
+        return "{:b}{:b}{:b}{:b}".format(
+            self.flags["negative"],
+            self.flags["zero"],
+            self.flags["carry"],
+            self.flags["overflow"])
+    # }}}
+
 
 def main(code):
-    i = 0
-    regs = [0] * 8
-    flags = {"negative": 0, "zero": 0, "carry": 0, "overflow": 0}
-    mem = code + (0xFFFF - len(code)) * [0]
     print("addr instr  : NZCV  r0   r1   r2   r3   r4   r5   r6   r7")
     while i < len(code):
+        i_start = i
         instruction_type = instructions[mem[i]]
         if "regsel" in instruction_type:
             rS, rD = decode_reg_sel(mem, i)
             regs[rD] = instruction_type["regsel"](regs[rS], regs[rD])
             update_flags(flags, regs[rD])
             regs[rD] &= 0xFFFF
-            i += 2
         elif "regsel_manual" in instruction_type:
             rS, rD = decode_reg_sel(mem, i)
             instruction_type["regsel_manual"](rS, rD, regs, mem, flags)
-            i += 2
         elif "regsel_imm" in instruction_type:
             rS, rD, imm = decode_imm(mem, i)
             regs[rD] = instruction_type["regsel_imm"](imm, regs[rS])
             update_flags(flags, regs[rD])
             regs[rD] &= 0xFFFF
-            i += 4
         elif "reg_store" in instruction_type:
             rD = instruction_type["reg_store"]
             data = decode_reg_store(mem, i)
             regs[rD] = data
             update_flags(flags, regs[rD])
             regs[rD] &= 0xFFFF
-            i += 2
         elif "regsel_manual_imm" in instruction_type:
             rS, rD, imm = decode_imm(mem, i)
             instruction_type["regsel_manual_imm"](imm,regs[rD],regs,mem,flags)
-            i += 4
-        elif "custom" in instruction_type:
+
+        if "custom" in instruction_type:
             custom = instruction_type["custom"]
             if custom == "noop":
-                i += 2
+                pass
             elif custom == "ldi":
                 disp = decode_reg_sel_disp(mem, i)
                 byte = decode_byte_sel(mem,i)
@@ -192,14 +248,12 @@ def main(code):
                        regs[rD] = mem[imm]
                     else:
                         regs[rD] = (mem[imm+1]<<8) | mem[imm]
-                i += 4
             elif custom == "ld":
                 byte = decode_byte_sel(mem, i)
                 if byte:
                     regs[rD] = mem[regs[rS]]
                 else:
                     regs[rD] = (mem[regs[rS]+1]<<8) | mem[regs[rS]]
-                i += 2
             elif custom == "sti":
                 disp = decode_reg_sel_disp(mem, i)
                 byte = decode_byte_sel(mem,i)
@@ -212,33 +266,44 @@ def main(code):
                     mem[imm] = regs[rS]&0xff
                     if not byte:
                         mem[imm+1] = (regs[rS]>>8) & 0xff
-                i += 4
             elif custom == "st":
                 rS, rD = decode_reg_sel(mem,i)
                 byte = decode_byte_sel(mem,i)
                 mem[regs[rD]] = regs[rS]&0xff
                 if not byte:
                     mem[regs[rD]+1] = (regs[rS]>>8)&0xff
-                i += 2
             elif custom == "jmp":
                 rD, cc = decode_jmpsel(mem, i)
                 if test_cc(flags,cc):
                     i = regs[rD]
                 else:
-                    i += 2
+                    pass
             elif custom == "jmpi":
                 _, cc = decode_jmpsel(mem, i)
                 _, _, imm = decode_imm(mem, i)
                 if test_cc(flags,cc):
                     i = imm
                 else:
-                    i += 4
+                    pass
             else:
                 assert False
-        else:
-            assert False, "Unknown operation 0x{:x} at {}".format(mem[i], i)
-        print("{:04} {:7}: {}  {}".format(i, instruction_type["name"],
-                                      flags_to_str(flags), regs_to_str(regs)))
+
+        if "signed_flags" in instruction_type:
+            rS, rD = decode_reg_sel(mem, i)
+            update_signed_flags(flags, *instruction_type["signed_flags"](regs[rS], regs[rD]))
+        elif "signed_flags_imm" in instruction_type:
+            rS, rD, imm = decode_imm(mem, i)
+            update_signed_flags(flags, *instruction_type["signed_flags_imm"](imm, regs[rS]))
+
+        if i == i_start:  # none of the instructions jumped
+                          # TODO this is actually wrong, what if it jumps to the same instruction
+            if "immediate" in instruction_type and instruction_type["immediate"]:
+                i += 4
+            else:
+                i += 2
+
+        print("{:04x} {:7}: {}  {}".format(i, instruction_type["name"],
+                                           flags_to_str(flags), regs_to_str(regs)))
 
 
 
@@ -252,7 +317,7 @@ def little_to_big_endian_16(data):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print "Usage: d16i [binary]"
+        print("Usage: d16i [binary]")
         sys.exit(1)
     with open(sys.argv[1], "rb") as code:
         main(little_to_big_endian_16(bytearray(code.read())))
