@@ -1,0 +1,8 @@
+machine:
+  python:
+    version: 3.5.1
+
+test:
+  post:
+    - cp -R build/* $CIRCLE_TEST_REPORTS/
+    - cp .tox/dist/*.zip $CIRCLE_ARTIFACTS/
