@@ -16,12 +16,10 @@ def test_cpu(name):
     name = "d16i/test/data/" + name
     subprocess.call(["d16", name + ".s", name + ".bin"])
     print(name + ".bin")
-    code = open(name + ".bin", "rb").read()
-    data = open(name + ".test")
-
-    cpu = D16Cpu(bytearray(code))
-    for line in data:
-        regs_str = line.split()
-        regs = [int(i, 16) for i in regs_str]
-        cpu.execute(steps=1, debug=True)
-        assert cpu.regs == regs
+    with open(name + ".bin", "rb") as code_file, open(name + ".test") as data:
+        cpu = D16Cpu(code_file.read())
+        for line in data:
+            regs_str = line.split()
+            regs = [int(i, 16) for i in regs_str]
+            cpu.execute(steps=1, debug=True)
+            assert cpu.regs == regs
