@@ -3,3 +3,8 @@ st [32],r0
 mov r1,0xbeef
 st.b [32],r1
 ld r2,[32]
+xor r2,r2
+mov r3,34
+st [r3],r0
+st.b [r3],r1
+ld r2,[r3]

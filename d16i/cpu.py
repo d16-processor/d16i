@@ -282,7 +282,7 @@ class D16Cpu():
                 is_byte = self._decode_byte_sel()
 
                 if custom in {"sti", "st"}:
-                    value = self.regs[rS]
+                    value = self.regs[rD]
                     if is_byte:
                         self.store_half(addr, value)
                     else:
