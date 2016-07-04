@@ -1,3 +1,4 @@
+from definitions import CC
 instructions = 256 * [None]  # type: list[dict[str, Any]]
 
 
@@ -84,37 +85,37 @@ register_instruction(0xFF, "STOP", custom="stop")
 
 
 def _test_cc(flags, cc):
-    if cc == 0x0:
+    if cc == CC.NV:
         return False
-    elif cc == 0x1:  # EQ
+    elif cc == CC.EQ:  # EQ
         return flags["zero"]
-    elif cc == 0x2:  # NE
+    elif cc == CC.NE:  # NE
         return not flags["zero"]
-    elif cc == 0x3:  # OS
+    elif cc == CC.OS:  # OS
         return flags["overflow"]
-    elif cc == 0x4:  # OC
+    elif cc == CC.OC:  # OC
         return not flags["overflow"]
-    elif cc == 0x5:  # HI
+    elif cc == CC.HI:  # HI
         return flags["carry"] and not flags["zero"]
-    elif cc == 0x6:  # LS
+    elif cc == CC.LS:  # LS
         return not flags["carry"] or flags["zero"]
-    elif cc == 0x7:  # P
+    elif cc == CC.P:  # P
         return not flags["negative"]
-    elif cc == 0x8:  # N
+    elif cc == CC.N:  # N
         return flags["negative"]
-    elif cc == 0x9:  # CS
+    elif cc == CC.CS:  # CS
         return flags["carry"]
-    elif cc == 0xA:  # CC
+    elif cc == CC.CC:  # CC
         return not flags["carry"]
-    elif cc == 0xB:  # GE
+    elif cc == CC.GE:  # GE
         return flags["negative"] == flags["overflow"]
-    elif cc == 0xC:  # G
+    elif cc == CC.G:  # G
         return not flags["zero"] and flags["negative"] == flags["overflow"]
-    elif cc == 0xD:  # LE
+    elif cc == CC.LE:  # LE
         return flags["zero"] and flags["negative"] != flags["overflow"]
-    elif cc == 0xE:  # L
+    elif cc == CC.L:  # L
         return flags["negative"] != flags["overflow"]
-    elif cc == 0xF:  # AL
+    elif cc == CC.AL:  # AL
         return True
 
 
