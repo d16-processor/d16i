@@ -8,6 +8,8 @@ import os
 @pytest.mark.parametrize("name", [
     ("add"),
     ("logic"),
+    ("jmp"),
+    ("mem"),
 ])
 def test_cpu(name):
     print(os.getcwd())
