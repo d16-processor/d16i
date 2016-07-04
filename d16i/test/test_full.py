@@ -1,22 +1,25 @@
 from d16i.cpu import D16Cpu
 import glob
 import subprocess
+import pytest
+import os
 
 
-def test_full():
-    def run_test(code, test_data):
-        cpu = D16Cpu(bytearray(code.read()))
-        for line in test_data:
-            regs_str = line.split()
-            regs = [int(i) for i in regs_str]
-            cpu.execute(steps=1, debug=True)
-            assert cpu.reg == regs
+@pytest.mark.parametrize("name", [
+    ("add"),
+    ("logic"),
+])
+def test_cpu(name):
+    print(os.getcwd())
+    name = "d16i/test/data/" + name
+    subprocess.call(["d16", name + ".s", name + ".bin"])
+    print(name + ".bin")
+    code = open(name + ".bin", "rb").read()
+    data = open(name + ".test")
 
-    sources = glob.glob("data/*.s")
-    for source in sources:
-        print(source)
-        name = source[:-2]
-        subprocess.call(["d16", source, name + ".bin"])
-        with open(name + ".bin") as code:
-            with open(name + ".test") as test_data:
-                run_test(code, test_data)
+    cpu = D16Cpu(bytearray(code))
+    for line in data:
+        regs_str = line.split()
+        regs = [int(i, 16) for i in regs_str]
+        cpu.execute(steps=1, debug=True)
+        assert cpu.regs == regs
