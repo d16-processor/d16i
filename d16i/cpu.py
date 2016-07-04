@@ -172,7 +172,7 @@ class D16Cpu():
         result = (s + d) & 0xFFFF
         result_sign = result >> 15
 
-        self._update_flags(result)
+
         self.flags["overflow"] = (s_sign == d_sign) and result_sign != s_sign
 
     # Memory access {{{
@@ -234,7 +234,7 @@ class D16Cpu():
 
     def execute_instruction(self):
 
-        self._reset_flags()
+
         self._increment_ip()
         instruction_type = self._current_instruction()
         if "regsel" in instruction_type or \
