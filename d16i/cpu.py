@@ -295,7 +295,7 @@ class D16Cpu():
             elif custom in {"jmp", "jmpi"}:
                 if custom == "jmp":
                     rD, cc = self._decode_jmpsel()
-                    addr = rD
+                    addr = self.regs[rD]
                 elif custom == "jmpi":
                     _, cc = self._decode_jmpsel()
                     _, _, imm = self._decode_imm()
