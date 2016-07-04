@@ -1,85 +1,86 @@
-from d16i.definitions import CC
+from d16i.definitions import CC, Opcode
+
 instructions = 256 * [None]  # type: list[dict[str, Any]]
 
 
 def register_instruction(value, name, **kwargs):
-    assert instructions[value] is None,\
+    assert instructions[value] is None, \
         "attempted to insert duplicate instruction"
     kwargs.update({"name": name})
     instructions[value] = kwargs
 
 
-register_instruction(0x00, "NOP", custom="noop")
-register_instruction(0x01, "ADD", signed_flags=lambda s, d: (s, d),
+register_instruction(Opcode.NOP, "NOP", custom="noop")
+register_instruction(Opcode.ADD, "ADD", signed_flags=lambda s, d: (s, d),
                      regsel=lambda s, d: (s + d))
-register_instruction(0x02, "SUB", signed_flags=lambda s, d: (-s, d),
+register_instruction(Opcode.SUB, "SUB", signed_flags=lambda s, d: (-s, d),
                      regsel=lambda s, d: (d - s))
-register_instruction(0x03, "PUSH")
-register_instruction(0x04, "POP")
-register_instruction(0x05, "MOVB_R0", reg_store=0)
-register_instruction(0x06, "MOVB_R1", reg_store=1)
-register_instruction(0x07, "MOVB_R2", reg_store=2)
-register_instruction(0x08, "MOVB_R3", reg_store=3)
-register_instruction(0x09, "MOVB_R4", reg_store=4)
-register_instruction(0x0A, "MOVB_R5", reg_store=5)
-register_instruction(0x0B, "MOVB_R6", reg_store=6)
-register_instruction(0x0C, "MOVB_R7", reg_store=7)
-register_instruction(0x0D, "MOV", regsel=lambda s, d: s)
-register_instruction(0x0E, "AND", regsel=lambda s, d: (s & d))
-register_instruction(0x0F, "OR", regsel=lambda s, d: (s | d))
-register_instruction(0x10, "XOR", regsel=lambda s, d: (s ^ d))
-register_instruction(0x11, "NOT", regsel=lambda s, d: (~d))
-register_instruction(0x12, "NEG", regsel=lambda s, d: (-s) & 0xFFFF)
+register_instruction(Opcode.PUSH, "PUSH")
+register_instruction(Opcode.POP, "POP")
+register_instruction(Opcode.MOVB_R0, "MOVB_R0", reg_store=0)
+register_instruction(Opcode.MOVB_R1, "MOVB_R1", reg_store=1)
+register_instruction(Opcode.MOVB_R2, "MOVB_R2", reg_store=2)
+register_instruction(Opcode.MOVB_R3, "MOVB_R3", reg_store=3)
+register_instruction(Opcode.MOVB_R4, "MOVB_R4", reg_store=4)
+register_instruction(Opcode.MOVB_R5, "MOVB_R5", reg_store=5)
+register_instruction(Opcode.MOVB_R6, "MOVB_R6", reg_store=6)
+register_instruction(Opcode.MOVB_R7, "MOVB_R7", reg_store=7)
+register_instruction(Opcode.MOV, "MOV", regsel=lambda s, d: s)
+register_instruction(Opcode.AND, "AND", regsel=lambda s, d: (s & d))
+register_instruction(Opcode.OR, "OR", regsel=lambda s, d: (s | d))
+register_instruction(Opcode.XOR, "XOR", regsel=lambda s, d: (s ^ d))
+register_instruction(Opcode.NOT, "NOT", regsel=lambda s, d: (~d))
+register_instruction(Opcode.NEG, "NEG", regsel=lambda s, d: (-s) & 0xFFFF)
 register_instruction(0x13, "LD", custom="ld")
 register_instruction(0x14, "ST", custom="st")
 register_instruction(0x15, "CMP", signed_flags=lambda s, d: (-s, d))
 register_instruction(0x16, "JMP", custom="jmp")
-register_instruction(0x17, "CALL")
-register_instruction(0x18, "SPEC")
-register_instruction(0x19, "SHL", regsel=lambda s, d: (d << s))
-register_instruction(0x1A, "SHR", regsel=lambda s, d: (d >> s))
-register_instruction(0x1B, "ROL", regsel=lambda s, d: (d >> s & 0xFFFF) |
-                                                      (d << (16 - s) & 0xFFFF))
-register_instruction(0x1C, "RCL")
-register_instruction(0x1D, "LDCP")
-register_instruction(0x1E, "STCP")
-register_instruction(0x1F, "ADC")
-register_instruction(0x20, "SBB")
+register_instruction(Opcode.CALL, "CALL")
+register_instruction(Opcode.SPEC, "SPEC")
+register_instruction(Opcode.SHL, "SHL", regsel=lambda s, d: (d << s))
+register_instruction(Opcode.SHR, "SHR", regsel=lambda s, d: (d >> s))
+register_instruction(Opcode.ROL, "ROL", regsel=lambda s, d:
+                     (d >> s & 0xFFFF) | (d << (16 - s) & 0xFFFF))
+register_instruction(Opcode.RCL, "RCL")
+register_instruction(Opcode.LDCP, "LDCP")
+register_instruction(Opcode.STCP, "STCP")
+register_instruction(Opcode.ADC, "ADC")
+register_instruction(Opcode.SBB, "SBB")
 
-register_instruction(0x81, "ADDI", immediate=True,
+register_instruction(Opcode.ADDI, "ADDI", immediate=True,
                      signed_flags_imm=lambda imm, s: (imm, s),
                      regsel_imm=lambda imm, s: (s + imm))
-register_instruction(0x82, "SUBI", immediate=True,
+register_instruction(Opcode.SUBI, "SUBI", immediate=True,
                      signed_flags_imm=lambda imm, s: (-imm, s),
                      regsel_imm=lambda imm, s: (s - imm))
-register_instruction(0x83, "PUSHI", immediate=True)
-register_instruction(0x8D, "MOVI", immediate=True,
+register_instruction(Opcode.PUSHI, "PUSHI", immediate=True)
+register_instruction(Opcode.MOVI, "MOVI", immediate=True,
                      regsel_imm=lambda imm, s: imm)
-register_instruction(0x8E, "ANDI", immediate=True,
+register_instruction(Opcode.ANDI, "ANDI", immediate=True,
                      regsel_imm=lambda imm, s: (imm & s))
-register_instruction(0x8F, "ORI", immediate=True,
+register_instruction(Opcode.ORI, "ORI", immediate=True,
                      regsel_imm=lambda imm, s: (imm | s))
-register_instruction(0x90, "XORI", immediate=True,
+register_instruction(Opcode.XORI, "XORI", immediate=True,
                      regsel_imm=lambda imm, s: (imm ^ s))
-register_instruction(0x93, "LDI", immediate=True,
+register_instruction(Opcode.LDI, "LDI", immediate=True,
                      custom="ldi")
-register_instruction(0x94, "STI", immediate=True,
+register_instruction(Opcode.STI, "STI", immediate=True,
                      custom="sti")
-register_instruction(0x95, "CMPI", immediate=True,
+register_instruction(Opcode.CMPI, "CMPI", immediate=True,
                      signed_flags_imm=lambda imm, s: (-imm, s))
-register_instruction(0x96, "JMPI", immediate=True,
+register_instruction(Opcode.JMPI, "JMPI", immediate=True,
                      custom="jmpi")
-register_instruction(0x97, "CALLI", immediate=True)
-register_instruction(0x99, "SHLI", immediate=True,
+register_instruction(Opcode.CALLI, "CALLI", immediate=True)
+register_instruction(Opcode.SHLI, "SHLI", immediate=True,
                      regsel_imm=lambda imm, s: (s << s))
-register_instruction(0x9A, "SHRI", immediate=True,
+register_instruction(Opcode.SHRI, "SHRI", immediate=True,
                      regsel_imm=lambda imm, s: (s >> s))
-register_instruction(0x9B, "ROLI", immediate=True,
+register_instruction(Opcode.ROLI, "ROLI", immediate=True,
                      regsel_imm=lambda imm, s: (s >> s & 0xFFFF) |
                                                (s << (16 - s) & 0xFFFF))
-register_instruction(0x9C, "RCLI", immediate=True)
-register_instruction(0x9F, "ADC", immediate=True)
-register_instruction(0xA0, "SBB", immediate=True)
+register_instruction(Opcode.RCLI, "RCLI", immediate=True)
+register_instruction(Opcode.ADCI, "ADCI", immediate=True)
+register_instruction(Opcode.SBBI, "SBBI", immediate=True)
 
 register_instruction(0xFF, "STOP", custom="stop")
 
@@ -125,6 +126,7 @@ class _StopException(Exception):
 
 
 class D16Cpu():
+
     def __init__(self, code):
         self.ip = {"has_jumped": True,
                    "i": 0}
@@ -142,7 +144,6 @@ class D16Cpu():
             "carry": False,
             "overflow": False
         })
-
 
     def _current_instruction(self):
         return instructions[self._current_half()]
@@ -174,7 +175,6 @@ class D16Cpu():
         self._update_flags(result)
         self.flags["overflow"] = (s_sign == d_sign) and result_sign != s_sign
 
-
     # Memory access {{{
     def load_word(self, addr):
         return self.mem[addr + 1] << 8 | self.mem[addr + 0]
@@ -188,8 +188,8 @@ class D16Cpu():
 
     def store_half(self, addr, value):
         self.mem[addr] = value & 0xFF
-    # }}}
 
+    # }}}
 
     # Instruction access {{{
     def _current_word(self):
@@ -203,12 +203,11 @@ class D16Cpu():
 
     def _next_half(self):
         return self.load_half(self.ip["i"] + 0)
-    # }}}
 
+    # }}}
 
     def store_reg(self, i, value):
         self.regs[i] = value & 0xFFFF
-
 
     # Instruction decoding helpers {{{
     def _decode_reg_sel(self):
@@ -230,20 +229,20 @@ class D16Cpu():
         rD = (self._next_half() & 0b00000111)
         cc = (self._next_half() & 0b01111000) >> 3
         return rD, cc
-    # }}}
 
+    # }}}
 
     def execute_instruction(self):
 
         self._reset_flags()
         self._increment_ip()
         instruction_type = self._current_instruction()
-        if "regsel" in instruction_type or\
-           "regsel_imm" in instruction_type or\
-           "reg_store" in instruction_type:
-            regsel, regsel_imm, reg_store =\
-                instruction_type.get("regsel"),\
-                instruction_type.get("regsel_imm"),\
+        if "regsel" in instruction_type or \
+            "regsel_imm" in instruction_type or \
+                "reg_store" in instruction_type:
+            regsel, regsel_imm, reg_store = \
+                instruction_type.get("regsel"), \
+                instruction_type.get("regsel_imm"), \
                 instruction_type.get("reg_store")
             if regsel is not None:
                 rS, rD = self._decode_reg_sel()
@@ -258,12 +257,11 @@ class D16Cpu():
                 result = self._next_half()
 
             else:
-                assert False, "one of regsel, regsel_imm, or reg_store is "\
+                assert False, "one of regsel, regsel_imm, or reg_store is " \
                               "assigned, but is `None`"
 
             self._update_flags(result)
             self.store_reg(rD, result)
-
 
         if "custom" in instruction_type:
             custom = instruction_type["custom"]
@@ -290,7 +288,7 @@ class D16Cpu():
                     else:
                         self.store_word(addr, value)
                 elif custom in {"ldi", "ld"}:
-                    value = self.load_half(addr) if is_byte\
+                    value = self.load_half(addr) if is_byte \
                         else self.load_word(addr)
                     self.store_reg(rD, value)
 
@@ -329,11 +327,13 @@ class D16Cpu():
         :param steps: Number of instructions to execute or None to run
                     indefinitely
         """
+
         def do_step(i):
             self.execute_instruction()
             if i % 16 == 0:
                 print(D16Cpu.trace_header_str())
             print(self.trace_str())
+
         try:
             if steps:
                 for i in range(steps):
@@ -367,4 +367,4 @@ class D16Cpu():
             self._current_instruction()["name"],
             self.flags_str(),
             self.regs_str())
-    # }}}
+        # }}}
