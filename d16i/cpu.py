@@ -233,10 +233,10 @@ class D16Cpu():
 
 
     def execute_instruction(self):
-        instruction_type = self._current_instruction()
+
         self._reset_flags()
         self._increment_ip()
-
+        instruction_type = self._current_instruction()
         if "regsel" in instruction_type or\
            "regsel_imm" in instruction_type or\
            "reg_store" in instruction_type:
