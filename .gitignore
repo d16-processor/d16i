@@ -248,3 +248,7 @@ fabric.properties
 ### IPythonNotebook ###
 # Temporary data
 .ipynb_checkpoints/
+
+
+# Assembler output files
+*.bin
