@@ -1,7 +1,8 @@
+# pep8-ignore: E402
 import os
 import sys
 import inspect
-from d16i.cpu import D16Cpu
+
 import glob
 import subprocess
 import pytest
@@ -10,15 +11,16 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(
 parentdir = os.path.dirname(currentdir)
 parentdir = os.path.dirname(parentdir)
 sys.path.insert(0, parentdir)
-
+from d16i.cpu import D16Cpu  # noqa
 
 
 def run_test(code, test_data):
     cpu = D16Cpu(bytearray(code.read()))
     for line in test_data:
         regs_str = line.split()
-        regs = [int(i) for i in regs_str]
+        regs = [int(i, 16) for i in regs_str]
         cpu.execute(steps=1, debug=True)
+        assert len(regs) == 8, "Invalid test data length: " + str(len(regs))
         for i in range(0, 8):
             assert cpu.regs[i] == regs[i], "Register r{0:1d} \
             was {1:4x}, expected {2:4x}".format(
@@ -31,6 +33,7 @@ def full_test():
     for source in sources:
         print(source)
         name = source[:-2]
+        print("Test: " + name)
         subprocess.call(["d16", source, name + ".bin"])
         with open(name + ".bin") as code:
             with open(name + ".test") as test_data:
