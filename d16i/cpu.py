@@ -1,4 +1,4 @@
-from definitions import CC
+from d16i.definitions import CC
 instructions = 256 * [None]  # type: list[dict[str, Any]]
 
 
@@ -112,7 +112,7 @@ def _test_cc(flags, cc):
     elif cc == CC.G:  # G
         return not flags["zero"] and flags["negative"] == flags["overflow"]
     elif cc == CC.LE:  # LE
-        return flags["zero"] and flags["negative"] != flags["overflow"]
+        return flags["zero"] or (flags["negative"] != flags["overflow"])
     elif cc == CC.L:  # L
         return flags["negative"] != flags["overflow"]
     elif cc == CC.AL:  # AL
