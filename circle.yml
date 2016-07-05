@@ -1,17 +1,13 @@
 machine:
   python:
     version: 3.5.1
-  pre:
-    - [[ $(cmake --version) =~ ([0.9][.][0.9.]*) ]] && version="${BASH_REMATCH[1]}"\
-    if ! awk -v ver="$version" 'BEGIN { if (ver < 3.0) exit 1; }'; then \
-    git clone https://github.com/C-Elegans/d16; \
-    cd d16/assembler; mkdir build;cd build;cmake ..;make; make; \
-    mkdir build; \
-    cd build; \
-    cmake .. && make; \
-    make install
 
 test:
+  pre:
+    - sudo wget 'https://circleci.com/api/v1/project/C-Elegans/d16/latest/artifacts/0/$CIRCLE_ARTIFACTS/d16?filter=successful&branch=master' -O /usr/bin/d16
+    - sudo chmod +x /usr/bin/d16
+  override:
+    - tox
   post:
     - cp -R build/* $CIRCLE_TEST_REPORTS/
     - cp .tox/dist/*.zip $CIRCLE_ARTIFACTS/
