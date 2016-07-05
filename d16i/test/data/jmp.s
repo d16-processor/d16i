@@ -5,3 +5,5 @@ jmp.ne loop
 mov r0,end
 jmp r0
 end:
+cmp r0,#0
+set.ne r1
