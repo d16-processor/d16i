@@ -3,11 +3,7 @@ machine:
     version: 3.5.1
   pre:
     - git clone https://github.com/C-Elegans/d16
-    - cd d16/assembler
-    - mkdir build
-    - cd build
-    - cmake .. && make
-    - make install
+    - cd d16/assembler; mkdir build; cd build; cmake ..; make; make install
 
 test:
   post:
