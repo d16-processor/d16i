@@ -46,6 +46,7 @@ register_instruction(Opcode.LDCP, "LDCP")
 register_instruction(Opcode.STCP, "STCP")
 register_instruction(Opcode.ADC, "ADC")
 register_instruction(Opcode.SBB, "SBB")
+register_instruction(Opcode.SET, "SET", custom="set")
 
 register_instruction(Opcode.ADDI, "ADDI", immediate=True,
                      signed_flags_imm=lambda imm, s: (imm, s),
@@ -72,12 +73,12 @@ register_instruction(Opcode.JMPI, "JMPI", immediate=True,
                      custom="jmpi")
 register_instruction(Opcode.CALLI, "CALLI", immediate=True)
 register_instruction(Opcode.SHLI, "SHLI", immediate=True,
-                     regsel_imm=lambda imm, s: (s << s))
+                     regsel_imm=lambda imm, s: (s << imm))
 register_instruction(Opcode.SHRI, "SHRI", immediate=True,
-                     regsel_imm=lambda imm, s: (s >> s))
+                     regsel_imm=lambda imm, s: (s >> imm))
 register_instruction(Opcode.ROLI, "ROLI", immediate=True,
-                     regsel_imm=lambda imm, s: (s >> s & 0xFFFF) |
-                                               (s << (16 - s) & 0xFFFF))
+                     regsel_imm=lambda imm, s: ((s >> imm) & 0xFFFF) |
+                                               (s << (16 - imm) & 0xFFFF))
 register_instruction(Opcode.RCLI, "RCLI", immediate=True)
 register_instruction(Opcode.ADCI, "ADCI", immediate=True)
 register_instruction(Opcode.SBBI, "SBBI", immediate=True)
@@ -250,7 +251,7 @@ class D16Cpu():
 
             elif regsel_imm is not None:
                 rS, rD, imm = self._decode_imm()
-                result = regsel_imm(imm, self.regs[rS])
+                result = regsel_imm(imm, self.regs[rD])
 
             elif reg_store is not None:
                 rD = reg_store
@@ -305,7 +306,9 @@ class D16Cpu():
 
                 if _test_cc(self.flags, cc):
                     self._jump_to(addr)
-
+            elif custom == "set":
+                rD, cc = self._decode_jmpsel()
+                self.regs[rD] = _test_cc(self.flags, cc)
             elif custom == "stop":
                 raise _StopException()
 

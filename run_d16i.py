@@ -7,7 +7,7 @@ from d16i.cpu import D16Cpu
 
 def main(code):
     cpu = D16Cpu(code)
-    cpu.execute(steps=None, debug=True)
+    cpu.execute(steps=16, debug=True)
 
 
 if __name__ == "__main__":

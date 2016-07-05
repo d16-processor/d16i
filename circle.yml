@@ -2,12 +2,14 @@ machine:
   python:
     version: 3.5.1
   pre:
-    - git clone https://github.com/C-Elegans/d16
-    - cd d16/assembler
-    - mkdir build
-    - cd build
-    - cmake .. && make
-    - make install
+    - [[ $(cmake --version) =~ ([0.9][.][0.9.]*) ]] && version="${BASH_REMATCH[1]}"\
+    if ! awk -v ver="$version" 'BEGIN { if (ver < 3.0) exit 1; }'; then \
+    git clone https://github.com/C-Elegans/d16; \
+    cd d16/assembler; mkdir build;cd build;cmake ..;make; make; \
+    mkdir build; \
+    cd build; \
+    cmake .. && make; \
+    make install
 
 test:
   post:

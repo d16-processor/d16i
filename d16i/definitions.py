@@ -51,6 +51,8 @@ class Opcode():
     STCP = 0x1E
     ADC = 0x1F
     SBB = 0x20
+    SET = 0x21
+
     ADDI = 0x81
     SUBI = 0x82
     PUSHI = 0x83
