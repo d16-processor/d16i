@@ -15,8 +15,8 @@ register_instruction(Opcode.ADD, "ADD", signed_flags=lambda s, d: (s, d),
                      regsel=lambda s, d: (s + d))
 register_instruction(Opcode.SUB, "SUB", signed_flags=lambda s, d: (-s, d),
                      regsel=lambda s, d: (d - s))
-register_instruction(Opcode.PUSH, "PUSH")
-register_instruction(Opcode.POP, "POP")
+register_instruction(Opcode.PUSH, "PUSH", custom="push")
+register_instruction(Opcode.POP, "POP", custom="pop")
 register_instruction(Opcode.MOVB_R0, "MOVB_R0", reg_store=0)
 register_instruction(Opcode.MOVB_R1, "MOVB_R1", reg_store=1)
 register_instruction(Opcode.MOVB_R2, "MOVB_R2", reg_store=2)
@@ -35,8 +35,8 @@ register_instruction(0x13, "LD", custom="ld")
 register_instruction(0x14, "ST", custom="st")
 register_instruction(0x15, "CMP", signed_flags=lambda s, d: (-s, d))
 register_instruction(0x16, "JMP", custom="jmp")
-register_instruction(Opcode.CALL, "CALL")
-register_instruction(Opcode.SPEC, "SPEC")
+register_instruction(Opcode.CALL, "CALL", custom="call")
+register_instruction(Opcode.SPEC, "SPEC", custom="ret")
 register_instruction(Opcode.SHL, "SHL", regsel=lambda s, d: (d << s))
 register_instruction(Opcode.SHR, "SHR", regsel=lambda s, d: (d >> s))
 register_instruction(Opcode.ROL, "ROL", regsel=lambda s, d:
@@ -54,7 +54,7 @@ register_instruction(Opcode.ADDI, "ADDI", immediate=True,
 register_instruction(Opcode.SUBI, "SUBI", immediate=True,
                      signed_flags_imm=lambda imm, s: (-imm, s),
                      regsel_imm=lambda imm, s: (s - imm))
-register_instruction(Opcode.PUSHI, "PUSHI", immediate=True)
+register_instruction(Opcode.PUSHI, "PUSHI", immediate=True, custom="pushi")
 register_instruction(Opcode.MOVI, "MOVI", immediate=True,
                      regsel_imm=lambda imm, s: imm)
 register_instruction(Opcode.ANDI, "ANDI", immediate=True,
@@ -71,7 +71,7 @@ register_instruction(Opcode.CMPI, "CMPI", immediate=True,
                      signed_flags_imm=lambda imm, s: (-imm, s))
 register_instruction(Opcode.JMPI, "JMPI", immediate=True,
                      custom="jmpi")
-register_instruction(Opcode.CALLI, "CALLI", immediate=True)
+register_instruction(Opcode.CALLI, "CALLI", immediate=True, custom="calli")
 register_instruction(Opcode.SHLI, "SHLI", immediate=True,
                      regsel_imm=lambda imm, s: (s << imm))
 register_instruction(Opcode.SHRI, "SHRI", immediate=True,
@@ -173,7 +173,6 @@ class D16Cpu():
         result = (s + d) & 0xFFFF
         result_sign = result >> 15
 
-
         self.flags["overflow"] = (s_sign == d_sign) and result_sign != s_sign
 
     # Memory access {{{
@@ -190,6 +189,14 @@ class D16Cpu():
     def store_half(self, addr, value):
         self.mem[addr] = value & 0xFF
 
+    def push(self, value):
+        self.regs[7] -= 2
+        self.store_word(self.regs[7], value)
+
+    def pop(self):
+        data = self.load_word(self.regs[7])
+        self.regs[7] += 2
+        return data
     # }}}
 
     # Instruction access {{{
@@ -234,7 +241,6 @@ class D16Cpu():
     # }}}
 
     def execute_instruction(self):
-
 
         self._increment_ip()
         instruction_type = self._current_instruction()
@@ -309,6 +315,36 @@ class D16Cpu():
             elif custom == "set":
                 rD, cc = self._decode_jmpsel()
                 self.regs[rD] = _test_cc(self.flags, cc)
+            elif custom in {"push", "pushi"}:
+                if custom == "push":
+                    _, rd = self._decode_reg_sel()
+                    data = self.regs[rd]
+                else:
+                    _, _, imm = self._decode_imm()
+                    data = imm
+                self.push(data)
+            elif custom == "pop":
+                _, rD = self._decode_reg_sel()
+                self.store_reg(rD, self.pop())
+            elif custom in {"call", "calli"}:
+                ip = self.ip["i"]
+                if custom == "call":
+                    rD, cc = self._decode_jmpsel()
+                    addr = self.regs[rD]
+                    ip += 2
+                elif custom == "calli":
+                    _, cc = self._decode_jmpsel()
+                    _, _, imm = self._decode_imm()
+                    addr = imm
+                    ip += 4
+                else:
+                    assert False
+
+                self.push(ip)
+                self._jump_to(addr)
+            elif custom == "ret":
+                ip = self.pop()
+                self._jump_to(ip)
             elif custom == "stop":
                 raise _StopException()
 

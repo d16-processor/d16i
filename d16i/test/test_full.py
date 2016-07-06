@@ -10,6 +10,8 @@ import os
     ("logic"),
     ("jmp"),
     ("mem"),
+    ("stack"),
+    ("call"),
 ])
 def test_cpu(name):
     print(os.getcwd())
