@@ -33,7 +33,8 @@ register_instruction(Opcode.NOT, "NOT", regsel=lambda s, d: (~d))
 register_instruction(Opcode.NEG, "NEG", regsel=lambda s, d: (-s) & 0xFFFF)
 register_instruction(0x13, "LD", custom="ld")
 register_instruction(0x14, "ST", custom="st")
-register_instruction(0x15, "CMP", signed_flags=lambda s, d: (-s, d))
+register_instruction(0x15, "CMP", signed_flags=lambda s, d: (-s, d),
+                     no_update_dest=True, regsel=lambda s, d: (d - s))
 register_instruction(0x16, "JMP", custom="jmp")
 register_instruction(Opcode.CALL, "CALL", custom="call")
 register_instruction(Opcode.SPEC, "SPEC", custom="ret")
@@ -68,7 +69,8 @@ register_instruction(Opcode.LDI, "LDI", immediate=True,
 register_instruction(Opcode.STI, "STI", immediate=True,
                      custom="sti")
 register_instruction(Opcode.CMPI, "CMPI", immediate=True,
-                     signed_flags_imm=lambda imm, s: (-imm, s))
+                     signed_flags_imm=lambda imm, s: (-imm, s),
+                     no_update_dest=True, regsel_imm=lambda imm, s: (s - imm))
 register_instruction(Opcode.JMPI, "JMPI", immediate=True,
                      custom="jmpi")
 register_instruction(Opcode.CALLI, "CALLI", immediate=True, custom="calli")
@@ -268,7 +270,10 @@ class D16Cpu():
                               "assigned, but is `None`"
 
             self._update_flags(result)
-            self.store_reg(rD, result)
+            if "no_update_dest" in instruction_type:
+                pass
+            else:
+                self.store_reg(rD, result)
 
         if "custom" in instruction_type:
             custom = instruction_type["custom"]
@@ -285,7 +290,7 @@ class D16Cpu():
                     addr = self.regs[rS]
                 else:
                     assert False
-
+                addr = addr & 0xFFFF
                 is_byte = self._decode_byte_sel()
 
                 if custom in {"sti", "st"}:

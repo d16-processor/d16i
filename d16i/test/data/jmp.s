@@ -7,3 +7,5 @@ jmp r0
 end:
 cmp r0,#0
 set.ne r1
+cmp r3,#0
+set.eq r2
