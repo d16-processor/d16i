@@ -1,5 +1,5 @@
 from d16i.definitions import CC, Opcode
-from d16i.io import isIo, write_io_16
+from d16i.io import isIo, write_io_8
 instructions = 256 * [None]  # type: list[dict[str, Any]]
 
 
@@ -183,7 +183,8 @@ class D16Cpu():
 
     def store_word(self, addr, value):
         if isIo(addr):
-            write_io_16(addr, value)
+            write_io_8(addr + 1, value >> 8)
+            write_io_8(addr, value & 0xff)
         else:
             self.mem[addr + 1] = (value >> 8) & 0xFF
             self.mem[addr + 0] = (value >> 0) & 0xFF
@@ -192,7 +193,10 @@ class D16Cpu():
         return self.mem[addr]
 
     def store_half(self, addr, value):
-        self.mem[addr] = value & 0xFF
+        if isIo(addr):
+            write_io_8(addr, value & 0xff)
+        else:
+            self.mem[addr] = value & 0xFF
 
     def push(self, value):
         self.regs[7] -= 2
