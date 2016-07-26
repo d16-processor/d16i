@@ -374,9 +374,10 @@ class D16Cpu():
 
         def do_step(i):
             self.execute_instruction()
-            if i % 16 == 0:
-                print(D16Cpu.trace_header_str())
-            print(self.trace_str())
+            if debug:
+                if i % 16 == 0:
+                    print(D16Cpu.trace_header_str())
+                print(self.trace_str())
 
         try:
             if steps:
