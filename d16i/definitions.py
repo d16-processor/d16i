@@ -52,7 +52,7 @@ class Opcode():
     ADC = 0x1F
     SBB = 0x20
     SET = 0x21
-
+    TEST = 0x22
     ADDI = 0x81
     SUBI = 0x82
     PUSHI = 0x83
@@ -71,3 +71,4 @@ class Opcode():
     RCLI = 0x9C
     ADCI = 0x9F
     SBBI = 0xA0
+    TESTI = 0xA2

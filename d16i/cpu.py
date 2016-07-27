@@ -48,7 +48,8 @@ register_instruction(Opcode.STCP, "STCP")
 register_instruction(Opcode.ADC, "ADC")
 register_instruction(Opcode.SBB, "SBB")
 register_instruction(Opcode.SET, "SET", custom="set")
-
+register_instruction(Opcode.TEST, "TEST", regsel=lambda s, d: (s & d),
+                     no_update_dest=True)
 register_instruction(Opcode.ADDI, "ADDI", immediate=True,
                      signed_flags_imm=lambda imm, s: (imm, s),
                      regsel_imm=lambda imm, s: (s + imm))
@@ -84,7 +85,9 @@ register_instruction(Opcode.ROLI, "ROLI", immediate=True,
 register_instruction(Opcode.RCLI, "RCLI", immediate=True)
 register_instruction(Opcode.ADCI, "ADCI", immediate=True)
 register_instruction(Opcode.SBBI, "SBBI", immediate=True)
-
+register_instruction(Opcode.TESTI, "TESTI", immediate=True,
+                     regsel_imm=lambda imm, s: (s & imm),
+                     no_update_dest=True)
 register_instruction(0xFF, "STOP", custom="stop")
 
 
