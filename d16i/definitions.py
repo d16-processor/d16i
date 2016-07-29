@@ -53,6 +53,8 @@ class Opcode():
     SBB = 0x20
     SET = 0x21
     TEST = 0x22
+    PUSHLR = 0x23
+
     ADDI = 0x81
     SUBI = 0x82
     PUSHI = 0x83

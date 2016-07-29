@@ -50,6 +50,8 @@ register_instruction(Opcode.SBB, "SBB")
 register_instruction(Opcode.SET, "SET", custom="set")
 register_instruction(Opcode.TEST, "TEST", regsel=lambda s, d: (s & d),
                      no_update_dest=True)
+register_instruction(Opcode.PUSHLR, "PUSHLR", custom="pushlr")
+
 register_instruction(Opcode.ADDI, "ADDI", immediate=True,
                      signed_flags_imm=lambda imm, s: (imm, s),
                      regsel_imm=lambda imm, s: (s + imm))
@@ -138,6 +140,7 @@ class D16Cpu():
                    "i": 0}
         self.regs = [0] * 8
         self.flags = {}
+        self.lr = 0
         self._reset_flags()
         self.mem = (bytearray(code) +
                     bytearray([0xff, 0xff]) +
@@ -330,10 +333,12 @@ class D16Cpu():
             elif custom == "set":
                 rD, cc = self._decode_jmpsel()
                 self.regs[rD] = _test_cc(self.flags, cc)
-            elif custom in {"push", "pushi"}:
+            elif custom in {"push", "pushi", "pushlr"}:
                 if custom == "push":
                     _, rd = self._decode_reg_sel()
                     data = self.regs[rd]
+                elif custom == "pushlr":
+                    data = self.lr
                 else:
                     _, _, imm = self._decode_imm()
                     data = imm
@@ -355,11 +360,11 @@ class D16Cpu():
                 else:
                     assert False
 
-                self.push(ip)
+                self.lr = ip
                 self._jump_to(addr)
             elif custom == "ret":
-                ip = self.pop()
-                self._jump_to(ip)
+
+                self._jump_to(self.lr)
             elif custom == "stop":
                 raise _StopException()
 
