@@ -16,7 +16,7 @@ import os
 def test_cpu(name):
     print(os.getcwd())
     name = "d16i/test/data/" + name
-    subprocess.call(["d16", "-o", name + ".bin", name + ".s"])
+    subprocess.call(["d16", "-o", name + ".bin", name + ".s", "-b"])
     print(name + ".bin")
     with open(name + ".bin", "rb") as code_file, open(name + ".test") as data:
         cpu = D16Cpu(code_file.read())
