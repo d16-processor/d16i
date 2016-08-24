@@ -4,7 +4,7 @@ machine:
 
 test:
   pre:
-    - sudo wget 'https://circleci.com/api/v1/project/C-Elegans/d16/latest/artifacts/0/$CIRCLE_ARTIFACTS/d16?filter=successful&branch=master' -O /usr/bin/d16
+    - sudo wget 'https://circleci.com/api/v1/project/d16-processor/d16/latest/artifacts/0/$CIRCLE_ARTIFACTS/d16?filter=successful&branch=master' -O /usr/bin/d16
     - sudo chmod +x /usr/bin/d16
   override:
     - tox
