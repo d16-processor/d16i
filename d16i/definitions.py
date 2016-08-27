@@ -54,6 +54,7 @@ class Opcode():
     SET = 0x21
     TEST = 0x22
     PUSHLR = 0x23
+    SAR = 0x24
 
     ADDI = 0x81
     SUBI = 0x82
@@ -74,3 +75,4 @@ class Opcode():
     ADCI = 0x9F
     SBBI = 0xA0
     TESTI = 0xA2
+    SARI = 0xA4
