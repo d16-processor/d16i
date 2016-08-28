@@ -28,14 +28,14 @@ class D16Uart():
         self.tx_fifo.put(data)
 
     def read_uart_status(self) -> int:
-        self.rx_lock.acquire()
-        tx_free = bool(self.tx_fifo.not_full)
-        tx_empty = bool(self.tx_fifo.empty())
-        rx_ready = bool(self.rx_fifo.not_empty)
-        rx_overrun = bool(self.rx_overrun)
-        self.rx_overrun = 0
-        self.rx_lock.release()
-        return tx_free | tx_empty << 1 | rx_ready << 2
+        with self.rx_lock:
+            tx_free = bool(self.tx_fifo.not_full)
+            tx_empty = bool(self.tx_fifo.empty())
+            rx_ready = bool(self.rx_fifo.not_empty)
+            rx_overrun = bool(self.rx_overrun)
+            self.rx_overrun = 0
+
+        return tx_free | tx_empty << 1 | rx_ready << 2 | rx_overrun << 3
 
     def read_uart_baud(self) -> int:
         return 0
@@ -55,21 +55,33 @@ class D16Uart():
                 c = getch()
                 self.rx_fifo.put(ord(c[0]), block=False)
             except Queue.QueueFull:
-                self.rx_lock.acquire()
-                self.rx_overrun = True
-                self.rx_lock.release()
+                with self.rx_lock:
+                    self.rx_overrun = True
 
 
-def getch():
+def _find_getch():  # http://stackoverflow.com/questions/510357/
+                    # python-read-a-single-character-from-the-user/21659588#21659588
+    try:
+        import termios
+    except ImportError:
+        # Non-POSIX. Return msvcrt's (Windows') getch.
+        import msvcrt
+        return msvcrt.getch
+
+    # POSIX system. Create and return a getch that manipulates the tty.
     import sys
     import tty
-    import termios
-    old_settings = termios.tcgetattr(0)
-    new_settings = old_settings[:]
-    new_settings[3] &= ~termios.ICANON
-    try:
-        termios.tcsetattr(0, termios.TCSANOW, new_settings)
-        ch = sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(0, termios.TCSANOW, old_settings)
-    return ch
+
+    def _getch():
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+
+    return _getch
+
+getch = _find_getch()

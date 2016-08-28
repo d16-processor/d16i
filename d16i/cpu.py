@@ -1,4 +1,4 @@
-from d16i.cpu_interface import BaseCpu, CpuStatistics
+from d16i.cpu_interface import BaseCpu
 from d16i.definitions import CC, Opcode
 from d16i.io import is_io, write_io_8, \
     write_io_16, read_io_16, read_io_8, wait_on_io
@@ -270,7 +270,6 @@ class D16Cpu(BaseCpu):
     # }}}
 
     def execute_instruction(self):
-        # self.stats.instructions_dispatched += 1
 
         self._increment_ip()
         instruction_type = self._current_instruction()

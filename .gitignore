@@ -252,3 +252,5 @@ fabric.properties
 
 # Assembler output files
 *.bin
+*.o
+

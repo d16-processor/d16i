@@ -2,9 +2,6 @@ from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 
 
-CpuStatistics = namedtuple("CpuStatistics", ["instructions_dispatched"])
-
-
 class BaseCpu(metaclass=ABCMeta):
     """
     Base CPU class. This contains some of the base specification
@@ -16,7 +13,6 @@ class BaseCpu(metaclass=ABCMeta):
         self.mem = (bytearray(code) +
                     bytearray([0xff, 0xff]) +
                     bytearray(0x10000 - (len(code) + 2)))
-        self.stats = CpuStatistics(instructions_dispatched=0)
 
     @abstractmethod
     def execute_instruction(self):
