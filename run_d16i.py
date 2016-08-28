@@ -9,7 +9,7 @@ import d16i.cmdline as cmdline
 
 def main(code):
     cpu = D16Cpu(code)
-    cpu.execute(steps=None, debug=True)
+    cpu.execute(steps=None, debug=None)
 
 
 if __name__ == "__main__":
