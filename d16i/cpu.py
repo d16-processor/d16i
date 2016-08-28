@@ -1,5 +1,8 @@
+from d16i.cpu_interface import BaseCpu, CpuStatistics
 from d16i.definitions import CC, Opcode
-from d16i.io import isIo, write_io_8
+from d16i.io import is_io, write_io_8, \
+    write_io_16, read_io_16, read_io_8, wait_on_io
+
 instructions = 256 * [None]  # type: list[dict[str, Any]]
 
 
@@ -133,18 +136,15 @@ class _StopException(Exception):
     pass
 
 
-class D16Cpu():
+class D16Cpu(BaseCpu):
 
     def __init__(self, code):
+        super().__init__(code)
         self.ip = {"has_jumped": True,
                    "i": 0}
-        self.regs = [0] * 8
         self.flags = {}
         self.lr = 0
         self._reset_flags()
-        self.mem = (bytearray(code) +
-                    bytearray([0xff, 0xff]) +
-                    bytearray(0x10000 - (len(code) + 2)))
 
     def _reset_flags(self):
         self.flags.update({
@@ -185,21 +185,26 @@ class D16Cpu():
 
     # Memory access {{{
     def load_word(self, addr):
-        return self.mem[addr + 1] << 8 | self.mem[addr + 0]
+        if is_io(addr):
+            return read_io_16(addr)
+        else:
+            return self.mem[addr + 1] << 8 | self.mem[addr + 0]
 
     def store_word(self, addr, value):
-        if isIo(addr):
-            write_io_8(addr + 1, value >> 8)
-            write_io_8(addr, value & 0xff)
+        if is_io(addr):
+            write_io_16(addr, value)
         else:
             self.mem[addr + 1] = (value >> 8) & 0xFF
             self.mem[addr + 0] = (value >> 0) & 0xFF
 
     def load_half(self, addr):
-        return self.mem[addr]
+        if is_io(addr):
+            return read_io_8(addr)
+        else:
+            return self.mem[addr]
 
     def store_half(self, addr, value):
-        if isIo(addr):
+        if is_io(addr):
             write_io_8(addr, value & 0xff)
         else:
             self.mem[addr] = value & 0xFF
@@ -256,6 +261,7 @@ class D16Cpu():
     # }}}
 
     def execute_instruction(self):
+        # self.stats.instructions_dispatched += 1
 
         self._increment_ip()
         instruction_type = self._current_instruction()
@@ -404,7 +410,12 @@ class D16Cpu():
                     do_step(i)
                     i += 1
         except _StopException:
+
             pass
+
+    def end(self):
+
+        wait_on_io()
 
     # Debug printing {{{
     def regs_str(self):

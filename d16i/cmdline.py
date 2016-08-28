@@ -17,3 +17,4 @@ def cmdline_main():
     with open(filename, "rb") as code:
         cpu = D16Cpu(bytearray(code.read()))
         cpu.execute(steps=None, debug=debug)
+        cpu.end()
