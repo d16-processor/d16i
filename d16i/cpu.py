@@ -44,8 +44,8 @@ register_instruction(Opcode.SPEC, "SPEC", custom="ret")
 register_instruction(Opcode.SHL, "SHL", regsel=lambda s, d: (d << s))
 register_instruction(Opcode.SHR, "SHR", regsel=lambda s, d: (d >> s))
 register_instruction(Opcode.ROL, "ROL", regsel=lambda s, d:
-                     (d >> s & 0xFFFF) | (d << (16 - s) & 0xFFFF))
-register_instruction(Opcode.RCL, "RCL")
+                     rol(d, s, 16))
+register_instruction(Opcode.RCL, "RCL", custom="rcl")
 register_instruction(Opcode.LDCP, "LDCP")
 register_instruction(Opcode.STCP, "STCP")
 register_instruction(Opcode.ADC, "ADC")
@@ -87,9 +87,9 @@ register_instruction(Opcode.SHLI, "SHLI", immediate=True,
 register_instruction(Opcode.SHRI, "SHRI", immediate=True,
                      regsel_imm=lambda imm, s: (s >> imm))
 register_instruction(Opcode.ROLI, "ROLI", immediate=True,
-                     regsel_imm=lambda imm, s: ((s >> imm) & 0xFFFF) |
-                                               (s << (16 - imm) & 0xFFFF))
-register_instruction(Opcode.RCLI, "RCLI", immediate=True)
+                     regsel_imm=lambda imm, s: rol(s, imm, 16))
+register_instruction(Opcode.RCLI, "RCLI", immediate=True,
+                     custom="rcli")
 register_instruction(Opcode.ADCI, "ADCI", immediate=True)
 register_instruction(Opcode.SBBI, "SBBI", immediate=True)
 register_instruction(Opcode.TESTI, "TESTI", immediate=True,
@@ -98,6 +98,11 @@ register_instruction(Opcode.TESTI, "TESTI", immediate=True,
 register_instruction(Opcode.SARI, "SARI", immediate=True,
                      regsel_imm=lambda imm, d: (sign_extend(d, 16) >> imm))
 register_instruction(0xFF, "STOP", custom="stop")
+
+
+def rol(val, r_bits, max_bits=16):
+    return (val << r_bits % max_bits) & (2**max_bits - 1) | \
+        ((val & (2**max_bits - 1)) >> (max_bits - (r_bits % max_bits)))
 
 
 def sign_extend(value, bits):
@@ -381,7 +386,17 @@ class D16Cpu(BaseCpu):
                 self._jump_to(self.lr)
             elif custom == "stop":
                 raise _StopException()
-
+            elif custom in ["rcl", "rcli"]:
+                shift = 0
+                if custom == "rcl":
+                    rS, rD = self._decode_reg_sel()
+                    shift = self.regs[rS]
+                else:
+                    rS, rD, imm = self._decode_imm()
+                    shift = imm
+                value = self.regs[rD]
+                value |= self.flags["carry"] << 16
+                self.regs[rD] = rol(value, shift, 17)
             else:
                 assert False
 

@@ -52,6 +52,7 @@ class D16Uart():
     def rx_worker(self):
         while True:
             try:
+                getch = _find_getch()
                 c = getch()
                 self.rx_fifo.put(ord(c[0]), block=False)
             except Queue.QueueFull:
@@ -76,12 +77,10 @@ def _find_getch():  # http://stackoverflow.com/questions/510357/
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
-            tty.setraw(fd)
+            # tty.setraw(fd)
             ch = sys.stdin.read(1)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
 
     return _getch
-
-getch = _find_getch()
